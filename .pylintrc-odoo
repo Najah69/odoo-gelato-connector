@@ -28,3 +28,11 @@ disable=
     manifest-required-author,
     # Catching broad Exception in background tasks is intentional
     broad-exception-caught,
+    # GelatoService is a plain Python class with no self.env — env-based translation N/A
+    prefer-env-translation,
+    # Lazy translation not applicable to dynamic error messages
+    translation-not-lazy,
+    # Named placeholders — enforce only where string is reused
+    translation-positional-used,
+    # Implicit string concat in multi-line calls — handled by black formatting
+    implicit-str-concat,

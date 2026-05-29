@@ -5,6 +5,7 @@ import logging
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools.translate import _
 
 from .gelato_service import GelatoService
 
@@ -71,7 +72,7 @@ class GelPrintOrder(models.Model):
     def _check_quantity(self):
         for rec in self:
             if rec.quantity < 1 or rec.quantity > 9999:
-                raise ValidationError("Quantity must be between 1 and 9999.")
+                raise ValidationError(_("Quantity must be between 1 and 9999."))
 
     currency_id = fields.Many2one(
         "res.currency",
@@ -198,7 +199,7 @@ class GelPrintOrder(models.Model):
         """Create and post a customer invoice from the linked sale order."""
         self.ensure_one()
         if not self.sale_order_id:
-            raise UserError("No sale order linked.\n" "Send the order to Gelato first to trigger the accounting chain.")
+            raise UserError(_("No sale order linked.\nSend the order to Gelato first to trigger the accounting chain."))
         existing = self.env["account.move"].search(
             [
                 ("invoice_origin", "=", f"{self.sale_order_id.name} — {self.name}"),
@@ -214,8 +215,7 @@ class GelPrintOrder(models.Model):
         product_map = self.product_map_id
         if not product_map.odoo_product_id:
             raise UserError(
-                "No linked Odoo product configured on the Gelato product.\n"
-                'Set "Linked Odoo Product" in Sales › Gelato › Product Catalogue.'
+                _('No linked Odoo product configured on the Gelato product.\nSet "Linked Odoo Product" in Sales.')
             )
 
         product = product_map.odoo_product_id.product_variant_ids[:1]
@@ -227,7 +227,7 @@ class GelPrintOrder(models.Model):
             limit=1,
         )
         if not journal:
-            raise UserError("No sale journal found for this company.")
+            raise UserError(_("No sale journal found for this company."))
 
         inv = self.env["account.move"].create(
             {
@@ -269,9 +269,9 @@ class GelPrintOrder(models.Model):
         """
         self.ensure_one()
         if self.state != "draft":
-            raise UserError("Only draft orders can be sent to Gelato.")
+            raise UserError(_("Only draft orders can be sent to Gelato."))
         if not self.image_url:
-            raise UserError("Image URL is empty.\n" 'Fill in the "Image URL" field before sending to Gelato.')
+            raise UserError(_('Image URL is empty. Fill in the "Image URL" field before sending to Gelato.'))
 
         config = self.env["gelato.config"].get_config(company=self.company_id)
         svc = GelatoService(config)
@@ -315,7 +315,7 @@ class GelPrintOrder(models.Model):
         """Cancel this order locally and attempt cancellation on Gelato."""
         self.ensure_one()
         if self.state in ("done", "cancel"):
-            raise UserError("This order can no longer be cancelled.")
+            raise UserError(_("This order can no longer be cancelled."))
 
         if self.gelato_order_id and self.gelato_order_id.gelato_order_id:
             # FIX #8 — get_config() moved inside try so a missing config does not
