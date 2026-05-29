@@ -3,7 +3,9 @@
 import logging
 
 import requests
+
 from odoo.exceptions import UserError
+from odoo.tools.translate import _
 
 _logger = logging.getLogger(__name__)
 
@@ -29,9 +31,7 @@ class GelatoService:
 
     def __init__(self, config):
         self._api_key = config.api_key
-        self._base_url = (config.api_base_url or "https://order.gelatoapis.com").rstrip(
-            "/"
-        )
+        self._base_url = (config.api_base_url or "https://order.gelatoapis.com").rstrip("/")
 
     # ------------------------------------------------------------------
     # Transport
@@ -44,9 +44,7 @@ class GelatoService:
         url = f'{self._base_url}/{path.lstrip("/")}'
         _logger.debug("Gelato POST %s ref=%s", url, payload.get("orderReferenceId", ""))
         try:
-            resp = requests.post(
-                url, headers=self._headers(), json=payload, timeout=self.TIMEOUT
-            )
+            resp = requests.post(url, headers=self._headers(), json=payload, timeout=self.TIMEOUT)
             resp.raise_for_status()
             try:
                 return resp.json()
@@ -57,16 +55,14 @@ class GelatoService:
                     resp.status_code,
                     resp.text[:200],
                 )
-                raise UserError(
-                    f"Gelato returned an invalid (non-JSON) response: {exc}"
-                )
+                raise UserError(_("Gelato returned an invalid (non-JSON) response: %s") % exc) from exc
         except requests.exceptions.HTTPError as exc:
-            body = exc.response.text[:500]
-            _logger.error("Gelato POST %s → %s %s", url, exc.response.status_code, body)
-            raise UserError(f"Gelato error ({exc.response.status_code}): {body}")
+            body = exc.response.text[:500] if exc.response is not None else ""
+            _logger.error("Gelato POST %s → %s %s", url, getattr(exc.response, "status_code", "?"), body)
+            raise UserError(_("Gelato error (%s): %s") % (getattr(exc.response, "status_code", "?"), body)) from exc
         except requests.exceptions.RequestException as exc:
             _logger.error("Gelato connection error: %s", exc)
-            raise UserError(f"Could not reach Gelato: {exc}")
+            raise UserError(_("Could not reach Gelato: %s") % exc) from exc
 
     def _get(self, path):
         url = f'{self._base_url}/{path.lstrip("/")}'
@@ -83,16 +79,14 @@ class GelatoService:
                     resp.status_code,
                     resp.text[:200],
                 )
-                raise UserError(
-                    f"Gelato returned an invalid (non-JSON) response: {exc}"
-                )
+                raise UserError(_("Gelato returned an invalid (non-JSON) response: %s") % exc) from exc
         except requests.exceptions.HTTPError as exc:
-            body = exc.response.text[:500]
-            _logger.error("Gelato GET %s → %s %s", url, exc.response.status_code, body)
-            raise UserError(f"Gelato error ({exc.response.status_code}): {body}")
+            body = exc.response.text[:500] if exc.response is not None else ""
+            _logger.error("Gelato GET %s → %s %s", url, getattr(exc.response, "status_code", "?"), body)
+            raise UserError(_("Gelato error (%s): %s") % (getattr(exc.response, "status_code", "?"), body)) from exc
         except requests.exceptions.RequestException as exc:
             _logger.error("Gelato connection error: %s", exc)
-            raise UserError(f"Could not reach Gelato: {exc}")
+            raise UserError(_("Could not reach Gelato: %s") % exc) from exc
 
     # ------------------------------------------------------------------
     # Public API
@@ -118,8 +112,7 @@ class GelatoService:
                     "quantity": print_order.quantity,
                 }
             ],
-            "shipmentMethodUid": print_order.product_map_id.shipment_method_uid
-            or "standard",
+            "shipmentMethodUid": print_order.product_map_id.shipment_method_uid or "standard",
             "shippingAddress": {
                 "firstName": first_name,
                 "lastName": last_name,
@@ -141,12 +134,12 @@ class GelatoService:
         """Query GET /v4/orders/{id}. Returns the raw JSON dict."""
         order_id = gelato_order.gelato_order_id
         if not order_id:
-            raise UserError("This gelato.order record has no Gelato ID yet.")
+            raise UserError(_("This gelato.order record has no Gelato ID yet."))
         return self._get(f"v4/orders/{order_id}")
 
     def cancel_order(self, gelato_order):
         """Attempt to cancel the Gelato order (only possible before production)."""
         order_id = gelato_order.gelato_order_id
         if not order_id:
-            raise UserError("No Gelato ID — cannot cancel.")
+            raise UserError(_("No Gelato ID — cannot cancel."))
         return self._post(f"v4/orders/{order_id}/cancel", {})

@@ -1,19 +1,10 @@
 # Copyright 2024 Contributors
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl-3.0).
-{
+{  # noqa: B018
     "name": "Gelato Print-on-Demand Connector",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Sales",
     "summary": "Integrate Gelato Print-on-Demand into your Odoo sales workflow",
-    "description": """
-Gelato Print-on-Demand Connector
-=================================
-Connects Odoo to the Gelato API v4, enabling automated print order fulfillment
-directly from your Odoo instance. Compatible with Odoo 16, 17, and 18.
-
-Features: webhook HMAC verification, cron polling fallback, multi-company,
-automatic sale order / invoice creation, customer portal with tracking.
-    """,
     "author": "Contributors",
     "website": "https://github.com/Najah69/odoo-gelato-connector",
     "license": "LGPL-3",

@@ -41,12 +41,8 @@ class GelatoOrder(models.Model):
         index=True,
         readonly=True,
     )
-    sale_order_id = fields.Many2one(
-        "sale.order", string="Sale Order", ondelete="set null"
-    )
-    company_id = fields.Many2one(
-        "res.company", related="print_order_id.company_id", store=True
-    )
+    sale_order_id = fields.Many2one("sale.order", string="Sale Order", ondelete="set null")
+    company_id = fields.Many2one("res.company", related="print_order_id.company_id", store=True)
 
     gelato_order_id = fields.Char(
         string="Gelato Order ID",
@@ -62,9 +58,7 @@ class GelatoOrder(models.Model):
         tracking=True,
         help="created | passed | printed | shipped | delivered | failed | canceled | returned",
     )
-    tracking_number = fields.Char(
-        string="Tracking Number", readonly=True, tracking=True
-    )
+    tracking_number = fields.Char(string="Tracking Number", readonly=True, tracking=True)
     tracking_url = fields.Char(string="Tracking URL", readonly=True)
     carrier = fields.Char(string="Carrier", readonly=True)
     shipment_method = fields.Char(string="Shipment Method", readonly=True)
@@ -77,9 +71,7 @@ class GelatoOrder(models.Model):
             try:
                 order._sync_from_gelato()
             except Exception as exc:
-                _logger.error(
-                    "Gelato manual sync — failed for id=%s: %s", order.id, exc
-                )
+                _logger.error("Gelato manual sync — failed for id=%s: %s", order.id, exc)
 
     def _sync_from_gelato(self):
         # FIX #5 — pass the order's own company so multi-company instances use
@@ -98,9 +90,7 @@ class GelatoOrder(models.Model):
         savepoint so a partial failure does not leave them in an inconsistent state.
         """
         vals = {
-            "fulfillment_status": data.get(
-                "fulfillmentStatus", self.fulfillment_status
-            ),
+            "fulfillment_status": data.get("fulfillmentStatus", self.fulfillment_status),
             "raw_response": json.dumps(data, ensure_ascii=False, indent=2),
             "last_sync": fields.Datetime.now(),
         }
@@ -119,9 +109,7 @@ class GelatoOrder(models.Model):
         with self.env.cr.savepoint():
             self.write(vals)
             if self.print_order_id:
-                new_state = FULFILLMENT_TO_PRINT_STATE.get(
-                    data.get("fulfillmentStatus", "")
-                )
+                new_state = FULFILLMENT_TO_PRINT_STATE.get(data.get("fulfillmentStatus", ""))
                 if new_state and self.print_order_id.state != new_state:
                     self.print_order_id.write({"state": new_state})
                     _logger.info(

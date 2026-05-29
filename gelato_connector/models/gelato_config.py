@@ -90,8 +90,7 @@ class GelatoConfig(models.Model):
             )
             if duplicate:
                 raise ValidationError(
-                    f"Only one active Gelato configuration per company is allowed "
-                    f"(company: {rec.company_id.name})."
+                    f"Only one active Gelato configuration per company is allowed " f"(company: {rec.company_id.name})."
                 )
 
     @api.model

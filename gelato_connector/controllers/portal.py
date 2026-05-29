@@ -3,9 +3,10 @@
 import logging
 
 from odoo import http
+from odoo.http import request
+
 from odoo.addons.portal.controllers.portal import CustomerPortal
 from odoo.addons.portal.controllers.portal import pager as portal_pager
-from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
@@ -24,9 +25,7 @@ class GelatoPortal(CustomerPortal):
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         if "print_order_count" in counters:
-            values["print_order_count"] = request.env[
-                "gelato.print.order"
-            ].search_count(self._print_orders_domain())
+            values["print_order_count"] = request.env["gelato.print.order"].search_count(self._print_orders_domain())
         return values
 
     def _print_orders_domain(self):
@@ -46,9 +45,7 @@ class GelatoPortal(CustomerPortal):
         PAGE_SIZE = 12
         domain = self._print_orders_domain()
         total = request.env["gelato.print.order"].search_count(domain)
-        pager = portal_pager(
-            url="/my/print-orders", total=total, page=int(page), step=PAGE_SIZE
-        )
+        pager = portal_pager(url="/my/print-orders", total=total, page=int(page), step=PAGE_SIZE)
         orders = request.env["gelato.print.order"].search(
             domain,
             limit=PAGE_SIZE,
@@ -68,9 +65,7 @@ class GelatoPortal(CustomerPortal):
     # Order detail
     # ------------------------------------------------------------------
 
-    @http.route(
-        "/my/print-orders/<int:order_id>", type="http", auth="user", website=True
-    )
+    @http.route("/my/print-orders/<int:order_id>", type="http", auth="user", website=True)
     def portal_print_order_detail(self, order_id, **kwargs):
         partner = request.env.user.partner_id
         # FIX #15 — same guard as _print_orders_domain.
@@ -105,9 +100,7 @@ class GelatoPortal(CustomerPortal):
 
     @http.route("/my/print-orders/new", type="http", auth="user", website=True)
     def portal_print_order_form(self, **kwargs):
-        product_maps = (
-            request.env["gelato.product.map"].sudo().search([("active", "=", True)])
-        )
+        product_maps = request.env["gelato.product.map"].sudo().search([("active", "=", True)])
         return request.render(
             "gelato_connector.portal_print_order_form",
             {
@@ -148,9 +141,7 @@ class GelatoPortal(CustomerPortal):
 
         # FIX #12 — validate product_map belongs to the user's company.
         product_map = request.env["gelato.product.map"].sudo().browse(product_map_id)
-        if not product_map.exists() or (
-            product_map.company_id and product_map.company_id != user_company
-        ):
+        if not product_map.exists() or (product_map.company_id and product_map.company_id != user_company):
             return request.redirect("/my/print-orders/new?error=no_product")
 
         # FIX #3 — set company_id explicitly so sudo() does not inherit the
@@ -174,11 +165,7 @@ class GelatoPortal(CustomerPortal):
         try:
             print_order.action_send_to_gelato()
         except Exception as exc:
-            _logger.error(
-                "Gelato portal submit — failed for order id=%s: %s", print_order.id, exc
-            )
-            return request.redirect(
-                f"/my/print-orders/{print_order.id}?error=gelato_failed"
-            )
+            _logger.error("Gelato portal submit — failed for order id=%s: %s", print_order.id, exc)
+            return request.redirect(f"/my/print-orders/{print_order.id}?error=gelato_failed")
 
         return request.redirect(f"/my/print-orders/{print_order.id}?success=1")

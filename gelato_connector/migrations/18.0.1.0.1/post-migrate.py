@@ -6,7 +6,4 @@
 
 
 def migrate(cr, version):
-    cr.execute(
-        "ALTER TABLE gelato_config "
-        "DROP CONSTRAINT IF EXISTS gelato_config_company_uniq"
-    )
+    cr.execute("ALTER TABLE gelato_config " "DROP CONSTRAINT IF EXISTS gelato_config_company_uniq")

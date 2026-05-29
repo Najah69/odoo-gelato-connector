@@ -1,29 +1,30 @@
 [MASTER]
 load-plugins=pylint_odoo
 
-[ODOO]
-odoo_config_file=
-
 [FORMAT]
 max-line-length=120
 
 [MESSAGES CONTROL]
 disable=
-    # Odoo not installed in lint environment — import errors are expected
+    # Odoo not installed in lint environment
     import-error,
-    # OCA: redundant string= when it matches the auto-generated label
+    # OCA: redundant string= matching auto-generated label
     attribute-string-redundant,
-    # Common Odoo patterns: **kwargs in route handlers
+    # **kwargs in route handlers is standard Odoo pattern
     unused-argument,
-    # PAGE_SIZE uppercase constant is acceptable
+    # PAGE_SIZE constant naming
     invalid-name,
-    # Calling internal methods across models is standard Odoo practice
+    # Calling _methods across models is standard Odoo
     protected-access,
-    # Docstrings not required on every small method
+    # Docstrings not required on every method
     missing-function-docstring,
     missing-class-docstring,
     missing-module-docstring,
-    # ORM patterns
+    # Standard OCA patterns
     too-few-public-methods,
     too-many-arguments,
     too-many-instance-attributes,
+    # OCA author check (not an official OCA repo)
+    manifest-required-author,
+    # Catching broad Exception in background tasks is intentional
+    broad-exception-caught,

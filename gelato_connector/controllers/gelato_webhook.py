@@ -5,9 +5,10 @@ import hmac
 import json
 import logging
 
+from werkzeug.exceptions import Unauthorized
+
 from odoo import http
 from odoo.http import request
-from werkzeug.exceptions import Unauthorized
 
 _logger = logging.getLogger(__name__)
 
@@ -45,9 +46,7 @@ class GelatoWebhookController(http.Controller):
         }
     """
 
-    @http.route(
-        "/gelato/webhook", type="http", auth="public", methods=["POST"], csrf=False
-    )
+    @http.route("/gelato/webhook", type="http", auth="public", methods=["POST"], csrf=False)
     def gelato_webhook(self, **kwargs):
         raw_body = request.httprequest.data or b"{}"
 
@@ -56,19 +55,13 @@ class GelatoWebhookController(http.Controller):
         #           multi-company setups verify the signature against the right secret.
         configs = request.env["gelato.config"].sudo().search([("active", "=", True)])
         if not configs:
-            _logger.warning(
-                "Gelato webhook — no active gelato.config, request rejected"
-            )
+            _logger.warning("Gelato webhook — no active gelato.config, request rejected")
             raise Unauthorized(description="No active Gelato configuration")
 
         # At least one config must have a secret that validates the payload.
         # If no config has a webhook_secret configured, the request is accepted
         # (opted-out of HMAC verification for all companies).
-        secrets = [
-            v["webhook_secret"]
-            for v in configs.sudo().read(["webhook_secret"])
-            if v.get("webhook_secret")
-        ]
+        secrets = [v["webhook_secret"] for v in configs.sudo().read(["webhook_secret"]) if v.get("webhook_secret")]
         if secrets and not any(self._verify_hmac(raw_body, s) for s in secrets):
             _logger.warning("Gelato webhook — invalid HMAC signature, request rejected")
             raise Unauthorized(description="Invalid HMAC signature")
@@ -125,11 +118,7 @@ class GelatoWebhookController(http.Controller):
             _logger.warning("Gelato webhook — payload missing orderId")
             return
 
-        order = (
-            request.env["gelato.order"]
-            .sudo()
-            .search([("gelato_order_id", "=", gelato_order_id)], limit=1)
-        )
+        order = request.env["gelato.order"].sudo().search([("gelato_order_id", "=", gelato_order_id)], limit=1)
         if not order:
             _logger.warning(
                 "Gelato webhook — gelato.order not found for orderId=%s (ref=%s)",
