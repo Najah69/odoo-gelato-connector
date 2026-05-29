@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="gelato_print_order_list_view" model="ir.ui.view">
+        <field name="name">gelato.print.order.list</field>
+        <field name="model">gelato.print.order</field>
+        <field name="arch" type="xml">
+            <list string="Print Orders"
+                  decoration-success="state == 'done'"
+                  decoration-info="state in ('sent_to_gelato', 'in_production', 'shipped')"
+                  decoration-muted="state == 'cancel'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="image_name"/>
+                <field name="product_map_id"/>
+                <field name="quantity"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-warning="state == 'shipped'"
+                       decoration-info="state in ('sent_to_gelato', 'in_production')"
+                       decoration-danger="state == 'cancel'"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="gelato_print_order_form_view" model="ir.ui.view">
+        <field name="name">gelato.print.order.form</field>
+        <field name="model">gelato.print.order</field>
+        <field name="arch" type="xml">
+            <form string="Print Order">
+                <header>
+                    <button name="action_send_to_gelato" type="object"
+                            string="Send to Gelato" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_create_invoice" type="object"
+                            string="Create Invoice" class="btn-secondary"
+                            invisible="state in ('draft', 'cancel') or not sale_order_id"/>
+                    <button name="action_cancel" type="object"
+                            string="Cancel" class="btn-danger"
+                            confirm="Confirm cancellation of this print order?"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,sent_to_gelato,in_production,shipped,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Customer">
+                            <field name="partner_id"/>
+                            <field name="shipping_address_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Image">
+                            <field name="image_url" widget="url"/>
+                            <field name="image_name"/>
+                        </group>
+                        <group string="Product &amp; Pricing">
+                            <field name="product_map_id"/>
+                            <field name="quantity"/>
+                            <field name="price_unit" readonly="1"/>
+                            <field name="amount_total" readonly="1"/>
+                            <field name="currency_id"/>
+                        </group>
+                        <group string="Links">
+                            <field name="gelato_order_id" readonly="1"/>
+                            <field name="sale_order_id"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Customer notes…"/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="gelato_print_order_search_view" model="ir.ui.view">
+        <field name="name">gelato.print.order.search</field>
+        <field name="model">gelato.print.order</field>
+        <field name="arch" type="xml">
+            <search string="Print Orders">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <filter name="draft"       string="Draft"       domain="[('state','=','draft')]"/>
+                <filter name="in_progress" string="In Progress" domain="[('state','in',['sent_to_gelato','in_production','shipped'])]"/>
+                <filter name="done"        string="Delivered"   domain="[('state','=','done')]"/>
+                <filter name="cancel"      string="Cancelled"   domain="[('state','=','cancel')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="by_partner" string="Customer"       context="{'group_by': 'partner_id'}"/>
+                    <filter name="by_product" string="Gelato Product" context="{'group_by': 'product_map_id'}"/>
+                    <filter name="by_state"   string="Status"         context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="gelato_print_order_action" model="ir.actions.act_window">
+        <field name="name">Print Orders</field>
+        <field name="res_model">gelato.print.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="gelato_print_order_search_view"/>
+    </record>
+
+    <menuitem id="menu_gelato_print_orders"
+              name="Print Orders"
+              parent="menu_gelato_root"
+              action="gelato_print_order_action"
+              sequence="5"/>
+
+</odoo>

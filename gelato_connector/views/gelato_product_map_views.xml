@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="gelato_product_map_form_view" model="ir.ui.view">
+        <field name="name">gelato.product.map.form</field>
+        <field name="model">gelato.product.map</field>
+        <field name="arch" type="xml">
+            <form string="Gelato Product">
+                <sheet>
+                    <group>
+                        <group string="Identification">
+                            <field name="name"/>
+                            <field name="product_type"/>
+                            <field name="gelato_product_uid"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Details">
+                            <field name="format"/>
+                            <field name="finish"/>
+                            <field name="shipment_method_uid"/>
+                            <field name="price"/>
+                            <field name="currency_id"/>
+                        </group>
+                    </group>
+                    <group string="Odoo Integration">
+                        <field name="odoo_product_id"/>
+                        <field name="description_portal"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="gelato_product_map_list_view" model="ir.ui.view">
+        <field name="name">gelato.product.map.list</field>
+        <field name="model">gelato.product.map</field>
+        <field name="arch" type="xml">
+            <list string="Gelato Products">
+                <field name="name"/>
+                <field name="product_type"/>
+                <field name="gelato_product_uid"/>
+                <field name="format"/>
+                <field name="finish"/>
+                <field name="shipment_method_uid"/>
+                <field name="price"/>
+                <field name="currency_id"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="gelato_product_map_action" model="ir.actions.act_window">
+        <field name="name">Product Catalogue</field>
+        <field name="res_model">gelato.product.map</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_gelato_products"
+              name="Product Catalogue"
+              parent="menu_gelato_root"
+              action="gelato_product_map_action"
+              sequence="10"/>
+
+</odoo>

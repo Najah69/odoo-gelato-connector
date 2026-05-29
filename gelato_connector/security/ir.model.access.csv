@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_gelato_config_admin,gelato.config (admin),model_gelato_config,base.group_system,1,1,1,1
+access_gelato_product_map_user,gelato.product.map (user),model_gelato_product_map,base.group_user,1,0,0,0
+access_gelato_product_map_manager,gelato.product.map (manager),model_gelato_product_map,sales_team.group_sale_manager,1,1,1,1
+access_gelato_order_user,gelato.order (user),model_gelato_order,base.group_user,1,0,0,0
+access_gelato_order_manager,gelato.order (manager),model_gelato_order,sales_team.group_sale_manager,1,1,1,1
+access_gelato_print_order_user,gelato.print.order (user),model_gelato_print_order,base.group_user,1,1,1,0
+access_gelato_print_order_manager,gelato.print.order (manager),model_gelato_print_order,sales_team.group_sale_manager,1,1,1,1
+access_gelato_print_order_public,gelato.print.order (public),model_gelato_print_order,base.group_public,0,0,0,0

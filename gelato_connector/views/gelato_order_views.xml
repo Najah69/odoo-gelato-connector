@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="gelato_order_form_view" model="ir.ui.view">
+        <field name="name">gelato.order.form</field>
+        <field name="model">gelato.order</field>
+        <field name="arch" type="xml">
+            <form string="Gelato Order">
+                <header>
+                    <button name="action_sync_status" type="object"
+                            string="Refresh from Gelato" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Gelato">
+                            <field name="gelato_order_id"/>
+                            <field name="gelato_order_ref"/>
+                            <field name="fulfillment_status"/>
+                            <field name="last_sync"/>
+                        </group>
+                        <group string="Shipping">
+                            <field name="carrier"/>
+                            <field name="shipment_method"/>
+                            <field name="tracking_number"/>
+                            <field name="tracking_url" widget="url"/>
+                        </group>
+                    </group>
+                    <group string="Links">
+                        <field name="print_order_id"/>
+                        <field name="sale_order_id"/>
+                    </group>
+                    <field name="raw_response" readonly="1"/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="gelato_order_list_view" model="ir.ui.view">
+        <field name="name">gelato.order.list</field>
+        <field name="model">gelato.order</field>
+        <field name="arch" type="xml">
+            <list string="Gelato Orders">
+                <field name="gelato_order_id"/>
+                <field name="print_order_id"/>
+                <field name="fulfillment_status"/>
+                <field name="tracking_number"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="gelato_order_action" model="ir.actions.act_window">
+        <field name="name">Gelato Orders</field>
+        <field name="res_model">gelato.order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_gelato_orders"
+              name="Gelato Orders"
+              parent="menu_gelato_root"
+              action="gelato_order_action"
+              sequence="20"/>
+
+</odoo>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="gelato_config_form_view" model="ir.ui.view">
+        <field name="name">gelato.config.form</field>
+        <field name="model">gelato.config</field>
+        <field name="arch" type="xml">
+            <form string="Gelato Configuration">
+                <sheet>
+                    <group>
+                        <group string="API Connection">
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="environment"/>
+                            <field name="api_key" password="True"/>
+                            <field name="api_base_url"/>
+                            <field name="webhook_secret" password="True"/>
+                        </group>
+                        <group string="Defaults">
+                            <field name="image_base_url"
+                                   placeholder="https://my-bucket.s3.amazonaws.com"/>
+                            <field name="default_currency_id"/>
+                            <field name="default_shipment_method"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert"
+                         invisible="environment == 'prod'">
+                        <strong>Test mode</strong> — Orders are not charged.
+                        Switch to Production when ready.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="gelato_config_list_view" model="ir.ui.view">
+        <field name="name">gelato.config.list</field>
+        <field name="model">gelato.config</field>
+        <field name="arch" type="xml">
+            <list string="Gelato Configurations">
+                <field name="company_id"/>
+                <field name="environment"/>
+                <field name="api_base_url"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="gelato_config_action" model="ir.actions.act_window">
+        <field name="name">Gelato Configuration</field>
+        <field name="res_model">gelato.config</field>
+        <field name="view_mode">form,list</field>
+    </record>
+
+    <menuitem id="menu_gelato_root"
+              name="Gelato"
+              parent="sale.sale_menu_root"
+              sequence="90"/>
+
+    <menuitem id="menu_gelato_config"
+              name="Configuration"
+              parent="menu_gelato_root"
+              action="gelato_config_action"
+              sequence="99"
+              groups="base.group_system"/>
+
+</odoo>

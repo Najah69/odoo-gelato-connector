@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Portal home counter -->
+    <template id="portal_my_home_gelato" inherit_id="portal.portal_my_home"
+              name="Print Orders — portal home">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">My Print Orders</t>
+                <t t-set="document_count" t-value="print_order_count"/>
+                <t t-set="url">/my/print-orders</t>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- Order list -->
+    <template id="portal_my_print_orders" name="My Print Orders">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">My Print Orders</t>
+            </t>
+
+            <div t-if="not print_orders" class="alert alert-info text-center mt-4" role="alert">
+                No print orders yet.
+                <a href="/my/print-orders/new">Order a print</a>
+            </div>
+
+            <div t-if="print_orders" class="table-responsive mt-3">
+                <table class="table table-hover o_portal_my_doc_table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Image</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="print_orders" t-as="order">
+                            <tr>
+                                <td>
+                                    <a t-attf-href="/my/print-orders/#{order.id}">
+                                        <t t-esc="order.name"/>
+                                    </a>
+                                </td>
+                                <td><t t-esc="order.image_name or '—'"/></td>
+                                <td><t t-esc="order.product_map_id.name"/></td>
+                                <td><t t-esc="order.quantity"/></td>
+                                <td>
+                                    <t t-esc="order.amount_total"
+                                       t-options='{"widget": "monetary", "display_currency": order.currency_id}'/>
+                                </td>
+                                <td>
+                                    <span t-attf-class="badge #{
+                                        'text-bg-success'   if order.state == 'done' else
+                                        'text-bg-info'      if order.state in ('sent_to_gelato', 'in_production') else
+                                        'text-bg-warning'   if order.state == 'shipped' else
+                                        'text-bg-danger'    if order.state == 'cancel' else
+                                        'text-bg-secondary'
+                                    }">
+                                        <t t-esc="dict(order.fields_get(['state'])['state']['selection'])[order.state]"/>
+                                    </span>
+                                </td>
+                                <td><t t-esc="order.create_date" t-options='{"widget": "date"}'/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+                <t t-call="portal.pager" t-if="pager"/>
+            </div>
+
+            <div class="mt-3">
+                <a href="/my/print-orders/new" class="btn btn-primary">New Print Order</a>
+            </div>
+        </t>
+    </template>
+
+    <!-- Order detail -->
+    <template id="portal_print_order_detail" name="Print Order Detail">
+        <t t-call="portal.portal_layout">
+            <div t-if="success" class="alert alert-success mb-3" role="alert">
+                <strong>Order submitted!</strong>
+                Your print order has been sent to Gelato. You will be notified when it ships.
+            </div>
+            <div t-if="error == 'gelato_failed'" class="alert alert-danger mb-3" role="alert">
+                An error occurred while submitting to Gelato. Your order was saved — please
+                contact us or retry from the backend.
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Print Order <t t-esc="order.name"/></h4>
+                    <span t-attf-class="badge #{
+                        'text-bg-success'   if order.state == 'done' else
+                        'text-bg-info'      if order.state in ('sent_to_gelato', 'in_production') else
+                        'text-bg-warning'   if order.state == 'shipped' else
+                        'text-bg-danger'    if order.state == 'cancel' else
+                        'text-bg-secondary'
+                    } fs-6">
+                        <t t-esc="dict(order.fields_get(['state'])['state']['selection'])[order.state]"/>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-5">Image</dt>
+                                <dd class="col-7"><t t-esc="order.image_name or order.image_url or '—'"/></dd>
+                                <dt class="col-5">Product</dt>
+                                <dd class="col-7"><t t-esc="order.product_map_id.name"/></dd>
+                                <dt class="col-5">Format</dt>
+                                <dd class="col-7"><t t-esc="order.product_map_id.format or '—'"/></dd>
+                                <dt class="col-5">Finish</dt>
+                                <dd class="col-7"><t t-esc="order.product_map_id.finish or '—'"/></dd>
+                                <dt class="col-5">Quantity</dt>
+                                <dd class="col-7"><t t-esc="order.quantity"/></dd>
+                                <dt class="col-5">Total</dt>
+                                <dd class="col-7">
+                                    <t t-esc="order.amount_total"
+                                       t-options='{"widget": "monetary", "display_currency": order.currency_id}'/>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6" t-if="order.gelato_order_id">
+                            <h6 class="fw-semibold">Shipment tracking</h6>
+                            <dl class="row">
+                                <dt class="col-5">Carrier</dt>
+                                <dd class="col-7"><t t-esc="order.gelato_order_id.carrier or '—'"/></dd>
+                                <dt class="col-5">Tracking</dt>
+                                <dd class="col-7">
+                                    <t t-if="order.gelato_order_id.tracking_url">
+                                        <a t-att-href="order.gelato_order_id.tracking_url" target="_blank">
+                                            <t t-esc="order.gelato_order_id.tracking_number"/>
+                                        </a>
+                                    </t>
+                                    <t t-else="">
+                                        <t t-esc="order.gelato_order_id.tracking_number or '—'"/>
+                                    </t>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <t t-if="order.note"><hr/><p><strong>Note:</strong> <t t-esc="order.note"/></p></t>
+                </div>
+            </div>
+
+            <a href="/my/print-orders" class="btn btn-secondary">← My Print Orders</a>
+        </t>
+    </template>
+
+    <!-- New order form -->
+    <template id="portal_print_order_form" name="New Print Order">
+        <t t-call="portal.portal_layout">
+            <h3 class="mt-3 mb-4">New Print Order</h3>
+
+            <div t-if="error" class="alert alert-danger" role="alert">
+                <t t-if="error == 'no_product'">Please select a product.</t>
+                <t t-elif="error == 'no_image'">Please provide an image URL.</t>
+                <t t-elif="error == 'gelato_failed'">An error occurred while submitting to Gelato. Please try again.</t>
+                <t t-else="">An error occurred. Please try again.</t>
+            </div>
+
+            <form action="/my/print-orders/new/submit" method="post" class="row g-3">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                <!-- Image URL -->
+                <div class="col-12 col-md-8">
+                    <label class="form-label fw-semibold" for="image_url">Image URL *</label>
+                    <input type="url" name="image_url" id="image_url"
+                           class="form-control" t-att-value="image_url"
+                           placeholder="https://…" required="required"/>
+                    <div class="form-text">Public URL of the image to print. Must be accessible by Gelato servers.</div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="image_name">Image Name</label>
+                    <input type="text" name="image_name" id="image_name"
+                           class="form-control" t-att-value="image_name"
+                           placeholder="e.g. Portrait — Paris 2024"/>
+                </div>
+
+                <!-- Product selection -->
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Product *</label>
+                    <div class="row g-3">
+                        <t t-foreach="product_maps" t-as="pm">
+                            <div class="col-sm-6 col-lg-4">
+                                <label class="card h-100 cursor-pointer">
+                                    <input type="radio" name="product_map_id"
+                                           t-att-value="pm.id"
+                                           class="visually-hidden"
+                                           t-att-checked="'checked' if pm_index == 0 else None"/>
+                                    <div class="card-body">
+                                        <h6 class="card-title"><t t-esc="pm.name"/></h6>
+                                        <ul class="list-unstyled small text-muted mb-2">
+                                            <li t-if="pm.format">Format: <t t-esc="pm.format"/></li>
+                                            <li t-if="pm.finish">Finish: <t t-esc="pm.finish"/></li>
+                                            <li>Shipping: <t t-esc="pm.shipment_method_uid"/></li>
+                                        </ul>
+                                        <p class="fw-bold mb-0">
+                                            <t t-esc="pm.price"
+                                               t-options='{"widget": "monetary", "display_currency": pm.currency_id}'/>
+                                        </p>
+                                        <p t-if="pm.description_portal" class="small text-muted mt-1 mb-0">
+                                            <t t-esc="pm.description_portal"/>
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="quantity">Quantity</label>
+                    <input type="number" name="quantity" id="quantity"
+                           class="form-control" value="1" min="1" max="99"/>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="note">Note (optional)</label>
+                    <textarea name="note" id="note" class="form-control" rows="2"
+                              placeholder="Special instructions…"/>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Submit Order</button>
+                    <a href="/my/print-orders" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </t>
+    </template>
+
+</odoo>

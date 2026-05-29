@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Multi-company note: this sequence is assigned to the company active at
+        install time. For additional companies, go to Settings › Sequences and
+        create a new sequence with code "gelato.print.order".
+        The create() method in print_order.py uses with_company() to pick the
+        correct sequence per record.
+    -->
+    <record id="seq_gelato_print_order" model="ir.sequence">
+        <field name="name">Gelato Print Order</field>
+        <field name="code">gelato.print.order</field>
+        <field name="prefix">GPO/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+</odoo>
