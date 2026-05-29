@@ -9,8 +9,21 @@ max-line-length=120
 
 [MESSAGES CONTROL]
 disable=
-    missing-module-docstring,
+    # Odoo not installed in lint environment — import errors are expected
+    import-error,
+    # OCA: redundant string= when it matches the auto-generated label
+    attribute-string-redundant,
+    # Common Odoo patterns: **kwargs in route handlers
+    unused-argument,
+    # PAGE_SIZE uppercase constant is acceptable
+    invalid-name,
+    # Calling internal methods across models is standard Odoo practice
+    protected-access,
+    # Docstrings not required on every small method
+    missing-function-docstring,
     missing-class-docstring,
+    missing-module-docstring,
+    # ORM patterns
     too-few-public-methods,
     too-many-arguments,
     too-many-instance-attributes,
