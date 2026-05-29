@@ -329,4 +329,4 @@ class GelPrintOrder(models.Model):
                 _logger.warning("Gelato cancellation failed (may already be in production): %s", exc)
 
         self.write({"state": "cancel"})
-        self.message_post(body="Order cancelled.")
+        self.message_post(body=_("Order cancelled."))
