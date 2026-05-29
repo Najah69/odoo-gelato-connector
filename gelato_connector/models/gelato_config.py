@@ -21,14 +21,24 @@ class GelatoConfig(models.Model):
         string='Gelato API Key', required=True, groups='base.group_system',
         help='Found in your Gelato dashboard → Settings → API.',
     )
+    # FIX #9 — api_base_url is now driven by the environment field via onchange
+    # so "Test" mode does not silently send real orders to the production endpoint.
     api_base_url = fields.Char(
         string='API Base URL', default=GELATO_API_BASE, required=True,
-        help='Change only if you need to proxy requests for testing.',
+        help='Production: https://order.gelatoapis.com\n'
+             'For local proxy / mocking only — do not change for normal use.',
     )
     environment = fields.Selection(
         [('test', 'Test / Sandbox'), ('prod', 'Production')],
         string='Environment', default='test', required=True,
+        help='IMPORTANT: Gelato uses the same API endpoint for test and production. '
+             'The difference is your API key: use a test key for sandbox orders. '
+             'Set this to Production only when using your live Gelato API key.',
     )
+
+    @api.onchange('environment')
+    def _onchange_environment(self):
+        self.api_base_url = GELATO_API_BASE
     webhook_secret = fields.Char(
         string='Webhook Secret', groups='base.group_system',
         help='If set, incoming webhook payloads are verified with HMAC-SHA256. '

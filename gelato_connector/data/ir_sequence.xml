@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-        Multi-company note: this sequence is assigned to the company active at
-        install time. For additional companies, go to Settings › Sequences and
-        create a new sequence with code "gelato.print.order".
-        The create() method in print_order.py uses with_company() to pick the
-        correct sequence per record.
+        FIX #13 — company_id is set to False (NULL) to make this a global/shared
+        sequence that acts as the fallback for all companies.
+        ir.sequence.with_company(id).next_by_code() first looks for a
+        company-specific sequence; if none exists it falls back to this global one.
+        For production multi-company setups, create a dedicated sequence per company
+        via Settings › Technical › Sequences with code "gelato.print.order".
     -->
     <record id="seq_gelato_print_order" model="ir.sequence">
         <field name="name">Gelato Print Order</field>
@@ -14,5 +15,6 @@
         <field name="padding">5</field>
         <field name="number_next">1</field>
         <field name="number_increment">1</field>
+        <field name="company_id" eval="False"/>
     </record>
 </odoo>

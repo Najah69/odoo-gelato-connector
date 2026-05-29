@@ -160,6 +160,7 @@
             <div t-if="error" class="alert alert-danger" role="alert">
                 <t t-if="error == 'no_product'">Please select a product.</t>
                 <t t-elif="error == 'no_image'">Please provide an image URL.</t>
+                <t t-elif="error == 'invalid_url'">The image URL must start with https://. Plain HTTP and other schemes are not accepted.</t>
                 <t t-elif="error == 'gelato_failed'">An error occurred while submitting to Gelato. Please try again.</t>
                 <t t-else="">An error occurred. Please try again.</t>
             </div>

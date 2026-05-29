@@ -2,7 +2,7 @@
 import json
 import logging
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from .gelato_service import GelatoService
 
 _logger = logging.getLogger(__name__)
@@ -54,6 +54,12 @@ class GelPrintOrder(models.Model):
         'gelato.product.map', string='Gelato Product', required=True, tracking=True,
     )
     quantity = fields.Integer(string='Quantity', default=1, required=True)
+
+    @api.constrains('quantity')
+    def _check_quantity(self):
+        for rec in self:
+            if rec.quantity < 1 or rec.quantity > 9999:
+                raise ValidationError('Quantity must be between 1 and 9999.')
     currency_id = fields.Many2one(
         'res.currency', string='Currency',
         default=lambda self: self.env.ref('base.EUR', raise_if_not_found=False),
@@ -163,7 +169,7 @@ class GelPrintOrder(models.Model):
                 'Send the order to Gelato first to trigger the accounting chain.'
             )
         existing = self.env['account.move'].search([
-            ('invoice_origin', 'like', self.sale_order_id.name),
+            ('invoice_origin', '=', f'{self.sale_order_id.name} — {self.name}'),
             ('move_type', '=', 'out_invoice'),
             ('state', '!=', 'cancel'),
         ], limit=1)
@@ -213,11 +219,10 @@ class GelPrintOrder(models.Model):
     def action_send_to_gelato(self):
         """Submit this order to Gelato.
 
-        Creates a ``gelato.order`` tracking record.
-        If ``gelato.product.map.odoo_product_id`` is set, also creates a
-        confirmed sale order.
-        All Odoo writes are wrapped in a savepoint so that a failure after
-        the (irreversible) API call does not leave Odoo in an inconsistent state.
+        Creates a ``gelato.order`` tracking record BEFORE calling the API so
+        that a local record always exists even if subsequent DB writes fail.
+        The API call is irreversible; creating the tracking record first ensures
+        operators can reconcile any split-brain state via the Gelato Order list.
         """
         self.ensure_one()
         if self.state != 'draft':
@@ -230,18 +235,28 @@ class GelPrintOrder(models.Model):
 
         config = self.env['gelato.config'].get_config(company=self.company_id)
         svc = GelatoService(config)
-        result = svc.create_order(self)
+
+        # FIX #1 — create the tracking record before the irreversible API call.
+        # If the API succeeds but subsequent writes fail, the record exists with
+        # fulfillment_status='pending' so the cron can reconcile it.
+        gelato_order = self.env['gelato.order'].create({
+            'print_order_id':     self.id,
+            'fulfillment_status': 'pending',
+            'last_sync':          fields.Datetime.now(),
+        })
+        self.write({'gelato_order_id': gelato_order.id})
+
+        result = svc.create_order(self)  # irreversible — happens after local record exists
 
         with self.env.cr.savepoint():
-            gelato_order = self.env['gelato.order'].create({
-                'print_order_id':     self.id,
+            gelato_order.write({
                 'gelato_order_id':    result.get('id') or '',
                 'gelato_order_ref':   result.get('orderReferenceId', self.name),
                 'fulfillment_status': result.get('fulfillmentStatus', 'created'),
                 'raw_response':       json.dumps(result, ensure_ascii=False, indent=2),
                 'last_sync':          fields.Datetime.now(),
             })
-            self.write({'state': 'sent_to_gelato', 'gelato_order_id': gelato_order.id})
+            self.write({'state': 'sent_to_gelato'})
             so = self._auto_create_sale_order()
             self.message_post(
                 body=(
@@ -259,9 +274,12 @@ class GelPrintOrder(models.Model):
             raise UserError('This order can no longer be cancelled.')
 
         if self.gelato_order_id and self.gelato_order_id.gelato_order_id:
-            config = self.env['gelato.config'].get_config(company=self.company_id)
-            svc = GelatoService(config)
+            # FIX #8 — get_config() moved inside try so a missing config does not
+            # block the local state update; the order is still cancelled in Odoo
+            # and the operator is warned via log.
             try:
+                config = self.env['gelato.config'].get_config(company=self.company_id)
+                svc = GelatoService(config)
                 svc.cancel_order(self.gelato_order_id)
             except UserError as exc:
                 _logger.warning('Gelato cancellation failed (may already be in production): %s', exc)

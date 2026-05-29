@@ -47,14 +47,25 @@ class GelatoWebhookController(http.Controller):
     def gelato_webhook(self, **kwargs):
         raw_body = request.httprequest.data or b'{}'
 
-        configs = request.env['gelato.config'].sudo().search([('active', '=', True)], limit=1)
-        if configs:
-            secret_vals = configs.sudo().read(['webhook_secret'])
-            webhook_secret = secret_vals[0].get('webhook_secret') if secret_vals else ''
-            if webhook_secret:
-                if not self._verify_hmac(raw_body, webhook_secret):
-                    _logger.warning('Gelato webhook — invalid HMAC signature, request rejected')
-                    raise Unauthorized(description='Invalid HMAC signature')
+        # FIX #2 — reject immediately when no active config exists (no config = no auth).
+        # FIX #3 — search ALL active configs and try each company's secret so that
+        #           multi-company setups verify the signature against the right secret.
+        configs = request.env['gelato.config'].sudo().search([('active', '=', True)])
+        if not configs:
+            _logger.warning('Gelato webhook — no active gelato.config, request rejected')
+            raise Unauthorized(description='No active Gelato configuration')
+
+        # At least one config must have a secret that validates the payload.
+        # If no config has a webhook_secret configured, the request is accepted
+        # (opted-out of HMAC verification for all companies).
+        secrets = [
+            v['webhook_secret']
+            for v in configs.sudo().read(['webhook_secret'])
+            if v.get('webhook_secret')
+        ]
+        if secrets and not any(self._verify_hmac(raw_body, s) for s in secrets):
+            _logger.warning('Gelato webhook — invalid HMAC signature, request rejected')
+            raise Unauthorized(description='Invalid HMAC signature')
 
         try:
             payload = json.loads(raw_body)
@@ -91,7 +102,12 @@ class GelatoWebhookController(http.Controller):
             raw_body,
             hashlib.sha256,
         ).hexdigest()
-        return hmac.compare_digest(expected, signature)
+        # FIX — cast both sides to str to avoid TypeError if the header value
+        # is decoded as bytes by some proxy/middleware.
+        try:
+            return hmac.compare_digest(str(expected), str(signature))
+        except TypeError:
+            return False
 
     def _handle_order_status_updated(self, payload):
         gelato_order_id = payload.get('orderId')

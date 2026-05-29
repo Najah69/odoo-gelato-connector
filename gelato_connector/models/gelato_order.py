@@ -55,11 +55,18 @@ class GelatoOrder(models.Model):
     last_sync = fields.Datetime(string='Last Sync', readonly=True)
 
     def action_sync_status(self):
+        # FIX #14 — per-record error isolation mirrors the cron path.
         for order in self:
-            order._sync_from_gelato()
+            try:
+                order._sync_from_gelato()
+            except Exception as exc:
+                _logger.error('Gelato manual sync — failed for id=%s: %s', order.id, exc)
 
     def _sync_from_gelato(self):
-        config = self.env['gelato.config'].get_config()
+        # FIX #5 — pass the order's own company so multi-company instances use
+        # the correct API key instead of defaulting to env.company.
+        company = self.print_order_id.company_id or self.env.company
+        config = self.env['gelato.config'].get_config(company=company)
         svc = GelatoService(config)
         data = svc.fetch_order_status(self)
         self._apply_gelato_response(data)
@@ -76,14 +83,17 @@ class GelatoOrder(models.Model):
             'raw_response': json.dumps(data, ensure_ascii=False, indent=2),
             'last_sync': fields.Datetime.now(),
         }
+        # FIX #11 — use direct assignment (not setdefault) so that updated tracking
+        # data (re-delivery, carrier swap) overwrites stale values on subsequent calls.
+        # The break is removed so all fulfillments per item are considered; the last
+        # one with a trackingCode wins, which is the most recent fulfillment attempt.
         for item in data.get('items', []):
             for fulfillment in item.get('fulfillments', []):
                 if fulfillment.get('trackingCode'):
-                    vals.setdefault('tracking_number', fulfillment['trackingCode'])
-                    vals.setdefault('tracking_url', fulfillment.get('trackingUrl', ''))
-                    vals.setdefault('carrier', fulfillment.get('shipmentMethodName', ''))
-                    vals.setdefault('shipment_method', fulfillment.get('shipmentMethodUid', ''))
-                    break
+                    vals['tracking_number'] = fulfillment['trackingCode']
+                    vals['tracking_url'] = fulfillment.get('trackingUrl', '')
+                    vals['carrier'] = fulfillment.get('shipmentMethodName', '')
+                    vals['shipment_method'] = fulfillment.get('shipmentMethodUid', '')
 
         with self.env.cr.savepoint():
             self.write(vals)
@@ -99,6 +109,8 @@ class GelatoOrder(models.Model):
     @api.model
     def cron_sync_pending_orders(self):
         """Hourly cron: poll Gelato for all non-terminal orders."""
+        # 'pending' records have a gelato_order_id only if the savepoint succeeded;
+        # those without gelato_order_id are orphans requiring manual reconciliation.
         pending = self.search([
             ('fulfillment_status', 'not in', ['delivered', 'canceled', 'returned', 'failed']),
             ('fulfillment_status', '!=', False),
