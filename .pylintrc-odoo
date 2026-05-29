@@ -1,0 +1,16 @@
+[MASTER]
+load-plugins=pylint_odoo
+
+[ODOO]
+odoo_config_file=
+
+[FORMAT]
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-instance-attributes,
