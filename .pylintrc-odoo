@@ -36,3 +36,5 @@ disable=
     translation-positional-used,
     # Implicit string concat in multi-line calls — handled by black formatting
     implicit-str-concat,
+    # Portal submit has multiple early-return guards — intentional validation pattern
+    too-many-return-statements,

@@ -4,3 +4,5 @@ extend-ignore = E203, W503
 per-file-ignores =
     # Odoo manifest is a module-level dict, not an assignment
     */gelato_connector/__manifest__.py: B018
+    # Odoo __init__.py imports are side-effects for model/controller registration
+    */__init__.py: F401
